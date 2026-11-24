@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agenda de entrevistas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{--bg:#eef3f5;--surface:#fff;--ink:#17323b;--muted:#5d767f;--line:#d3e0e4;--accent:#0e6b7a;--accent-ink:#fff;--next:#ffe7a8;--next-line:#d99a00;--free:#e3f4ee;--danger:#a63a2b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1c20;--surface:#172a30;--ink:#e6f1f4;--muted:#93aeb7;--line:#27424a;--accent:#4cc3d6;--accent-ink:#06242a;--next:#4a3a0c;--next-line:#f0b429;--free:#163a33;--danger:#ff8f7e}}
+:root[data-theme="dark"]{--bg:#0f1c20;--surface:#172a30;--ink:#e6f1f4;--muted:#93aeb7;--line:#27424a;--accent:#4cc3d6;--accent-ink:#06242a;--next:#4a3a0c;--next-line:#f0b429;--free:#163a33;--danger:#ff8f7e}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.45 "Atkinson Hyperlegible",system-ui,Arial,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px 14px 48px}
+h1{font-size:1.6rem;margin:4px 0 14px}
+h2{font-size:1.05rem;margin:22px 0 8px;color:var(--muted)}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 18px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+button.ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
+button.danger{background:transparent;color:var(--danger);border:2px solid var(--danger)}
+button:focus-visible,input:focus,textarea:focus{outline:3px solid var(--accent);outline-offset:2px}
+.next{background:var(--next);border:3px solid var(--next-line);border-radius:16px;padding:14px 16px;width:100%;text-align:left;color:var(--ink);font-weight:400}
+.next b{display:block}.next .who{font-size:1.7rem;font-weight:700;line-height:1.2}
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.nav strong{text-transform:capitalize;font-size:1.2rem}
+.nav button{padding:8px 14px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wd{text-align:center;font-size:.85rem;color:var(--muted);font-weight:700}
+.d{aspect-ratio:1;min-height:44px;border-radius:10px;background:transparent;color:var(--ink);border:2px solid transparent;padding:2px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.d small{font-size:.7rem;font-weight:400;color:var(--muted)}
+.d.has{background:var(--free)}
+.d.today{border-color:var(--next-line)}
+.d.sel{background:var(--accent);color:var(--accent-ink)}.d.sel small{color:var(--accent-ink)}
+.d:disabled{cursor:not-allowed}.d.past{opacity:.35;background:var(--bg);color:var(--muted);text-decoration:line-through}.d:disabled:not(.past){visibility:hidden}
+.slot.past{opacity:.48;background:var(--bg);border-style:dashed}.slot.past button{opacity:.55;cursor:not-allowed}.status{display:inline-block;border-radius:999px;padding:2px 8px;font-size:.78rem;font-weight:700;margin-top:4px}.status.pending{background:#fff0c2;color:#765300}.status.done{background:#d9f2e6;color:#155b3b}.status.cancelled{background:#f8dddd;color:#8c2929}.slot.cancelled{opacity:.7}.history{margin-top:22px;padding-top:8px;border-top:1px solid var(--line)}.history-item{padding:9px 0;border-bottom:1px solid var(--line)}.wa{display:inline-block;text-decoration:none;background:#168b50;color:white;font-weight:700;padding:10px 14px;border-radius:10px;margin-top:12px}.hint{font-size:.85rem;color:var(--muted)}
+.dayhead{font-size:1.3rem;font-weight:700;text-transform:capitalize;margin:22px 0 4px}
+.slot{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.slot.free{background:var(--free)}
+.slot.nxt{border:3px solid var(--next-line)}
+.t{font-weight:700;min-width:7.2em}
+.who{font-weight:700}.meta{color:var(--muted);font-size:.9rem}
+dialog{border:0;border-radius:16px;padding:18px;width:min(92vw,420px);background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+label{display:grid;gap:4px;font-weight:700;font-size:.95rem;margin-top:12px}
+input,textarea{font:inherit;padding:10px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+</style>
+</head>
+<body>
+<main id="login" hidden style="text-align:center;padding-top:15vh">
+<h1>Agenda de entrevistas</h1>
+<p class="meta" style="font-size:1rem">Entrá con tu cuenta de Google para ver y agendar las entrevistas.</p>
+<button id="gbtn">Entrar con Google</button>
+<p class="meta" id="lerr" style="color:var(--danger)"></p>
+</main>
+
+<main id="app" hidden>
+<h1>Agenda de entrevistas</h1>
+<div class="meta" style="margin:-8px 0 6px"><span id="me"></span> <button class="ghost" id="out" style="padding:4px 10px;font-size:.85rem">Cerrar sesión</button></div>
+<div class="meta" id="st" style="margin:0 0 12px;color:var(--danger)"></div>
+<div id="next"></div>
+
+<h2>Elegí un día</h2>
+<div class="cal">
+  <div class="nav">
+    <button class="ghost" id="prev" aria-label="Mes anterior">&#8592;</button>
+    <strong id="mt"></strong>
+    <button class="ghost" id="nx" aria-label="Mes siguiente">&#8594;</button>
+  </div>
+  <div class="grid" id="cal"></div>
+  <div class="row"><button class="ghost" id="today">Ir a hoy</button></div>
+</div>
+
+<div class="dayhead" id="dh"></div>
+<div id="slots"></div>
+<div id="history" class="history"></div>
+</main>
+
+<dialog id="dlg">
+  <form id="f">
+    <strong id="dt" style="font-size:1.2rem"></strong>
+    <label>Nombre de la persona<input id="name" required autocomplete="off"></label>
+    <label>Teléfono (opcional)<input id="phone" type="tel" autocomplete="off" placeholder="Ej. +598 99 123 456"></label><p class="hint">Para usar el recordatorio, ingresá el teléfono con código de país.</p>
+    <label>Notas (opcional)<textarea id="notes" rows="2"></textarea></label>
+    <label id="statusWrap" hidden>Estado de la entrevista<select id="status" style="font:inherit;padding:10px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%"><option value="pending">Pendiente</option><option value="done">Realizada</option><option value="cancelled">Cancelada</option></select></label>
+    <div id="reminder"></div>
+    <p class="hint" id="pastHint" hidden>Este horario ya pasó y no se puede agendar.</p>
+    <div class="row">
+      <button type="submit">Guardar</button>
+      <button type="button" class="ghost" id="close">Cerrar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  var KEY='agenda-entrevistas-v2';
+  var SLOTS=['10:00','10:40','11:20','12:00','14:30','15:10','15:50','16:30'];
+  var data={}, allBookings=[];
+  var FIREBASE_CONFIG={apiKey:"AIzaSyCPVAoKIZK_UH3UkmBtajkTE9Wiiuk3WWA",authDomain:"agenda-61ee7.firebaseapp.com",projectId:"agenda-61ee7",storageBucket:"agenda-61ee7.firebasestorage.app",messagingSenderId:"384029964828",appId:"1:384029964828:web:2e2944e9b02651a549bdd9"};
+  var fs=null, unsub=null;
+  function note(t){var e=document.getElementById('st'); if(e) e.textContent=t;}
+  function fail(e){ note(e&&e.code==='permission-denied'?'Este correo no tiene permiso para usar la agenda.':'No se pudo guardar. Probá de nuevo.'); }
+  function put(k,b){
+    var p=k.split('|'), old=data[k], payload={day:p[0],slot:p[1],name:b.name,phone:b.phone,notes:b.notes,status:b.status||'pending',updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+    var request=old&&old.id ? fs.collection('bookings').doc(old.id).set(payload,{merge:true}) : fs.collection('bookings').add(payload);
+    request.catch(fail);
+  }
+  function updateStatus(k,status){
+    var old=data[k]; if(!old||!old.id)return;
+    fs.collection('bookings').doc(old.id).set({status:status,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}).catch(fail);
+  }
+  function showLogin(on){ document.getElementById('login').hidden=!on; document.getElementById('app').hidden=on; }
+  function initFb(){
+    if(typeof firebase==='undefined'){ showLogin(true); document.getElementById('lerr').textContent='No se pudo cargar. Revisá la conexión y recargá la página.'; return; }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    var auth=firebase.auth(); fs=firebase.firestore();
+    document.getElementById('gbtn').onclick=function(){
+      var pr=new firebase.auth.GoogleAuthProvider();
+      document.getElementById('lerr').textContent='';
+      auth.signInWithPopup(pr).catch(function(e){
+        if(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'){ auth.signInWithRedirect(pr); }
+        else if(e.code!=='auth/popup-closed-by-user'&&e.code!=='auth/cancelled-popup-request'){ document.getElementById('lerr').textContent='No se pudo iniciar sesión ('+(e.code||'error')+'). Probá de nuevo.'; }
+      });
+    };
+    document.getElementById('out').onclick=function(){ auth.signOut(); };
+    auth.onAuthStateChanged(function(u){
+      if(unsub){ unsub(); unsub=null; }
+      if(!u){ data={}; showLogin(true); return; }
+      document.getElementById('me').textContent=u.email; showLogin(false); note('');
+      unsub=fs.collection('bookings').onSnapshot(function(snap){
+        var nd={}, all=[];
+        snap.docs.forEach(function(x){var b=x.data(); if(b&&b.day&&b.slot){var item={id:x.id,name:b.name||'',phone:b.phone||'',notes:b.notes||'',status:b.status||'pending',day:b.day,slot:b.slot};all.push(item);if(item.status!=='cancelled')nd[b.day+'|'+b.slot]=item;}});
+        data=nd; allBookings=all; render();
+      },fail);
+    });
+  }
+  var $=function(i){return document.getElementById(i)};
+  function pad(n){return String(n).padStart(2,'0')}
+  function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function endOf(s){var p=s.split(':'),m=+p[0]*60+ +p[1]+40;return pad(Math.floor(m/60))+':'+pad(m%60)}
+  function parse(day){var p=day.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+  function longDay(day){return parse(day).toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})}
+  function esc(s){return String(s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function countDay(day){return SLOTS.filter(function(s){return data[day+'|'+s]}).length}
+  function isPastDay(day){return day<ymd(new Date())}
+  function isPastSlot(day,slot){if(isPastDay(day))return true;var p=slot.split(':'),d=parse(day);d.setHours(+p[0],+p[1],0,0);return d<=new Date()}
+  function statusLabel(v){return v==='done'?'Realizada':v==='cancelled'?'Cancelada':'Pendiente'}
+  function statusClass(v){return v==='done'?'done':v==='cancelled'?'cancelled':'pending'}
+  var now=new Date(), sel=ymd(now), vy=now.getFullYear(), vm=now.getMonth(), cur=null;
+
+  function nextOne(){
+    var n=new Date(), best=null;
+    Object.keys(data).forEach(function(k){
+      var p=k.split('|'), e=parse(p[0]), q=endOf(p[1]).split(':');
+      e.setHours(+q[0],+q[1]);
+      if(data[k].status==='pending' && e>=n && (!best || e<best.e)) best={k:k,day:p[0],slot:p[1],e:e};
+    });
+    return best;
+  }
+  function render(){
+    var n=nextOne(), el=$('next');
+    if(n){
+      var b=data[n.k];
+      el.innerHTML='<button class="next" data-day="'+n.day+'"><b>Próxima entrevista</b><span class="who">'+esc(b.name)+'</span><span>'+esc(longDay(n.day))+', de '+n.slot+' a '+endOf(n.slot)+'</span></button>';
+    } else el.innerHTML='<div class="meta">No hay entrevistas pendientes.</div>';
+
+    $('mt').textContent=new Date(vy,vm,1).toLocaleDateString('es',{month:'long',year:'numeric'});
+    var h='';['L','M','M','J','V','S','D'].forEach(function(w){h+='<div class="wd">'+w+'</div>'});
+    var off=(new Date(vy,vm,1).getDay()+6)%7, dim=new Date(vy,vm+1,0).getDate(), i;
+    for(i=0;i<off;i++) h+='<button class="d" disabled></button>';
+    for(i=1;i<=dim;i++){
+      var day=vy+'-'+pad(vm+1)+'-'+pad(i), c=countDay(day);
+      var past=isPastDay(day);
+      var blocked=past&&c===0;
+      h+='<button class="d'+(c?' has':'')+(day===ymd(new Date())?' today':'')+(day===sel?' sel':'')+(past?' past':'')+'" data-day="'+day+'" '+(blocked?'disabled':'')+' aria-label="'+esc(longDay(day))+(past?', fecha pasada; solo consulta':c?', '+c+' de 8 agendadas':'')+'">'+i+(c?'<small>'+c+'/8</small>':'')+'</button>';
+    }
+    $('cal').innerHTML=h;
+
+    $('dh').textContent=longDay(sel);
+    var s='';
+    SLOTS.forEach(function(t,idx){
+      if(idx===0) s+='<h2>Mañana</h2>';
+      if(idx===4) s+='<h2>Tarde</h2>';
+      var k=sel+'|'+t, b=data[k], past=isPastSlot(sel,t);
+      s+='<div class="slot'+(b?'':' free')+(n&&n.k===k?' nxt':'')+(past?' past':'')+'"><div class="t">'+t+' a '+endOf(t)+'</div>'
+       +(b?'<div><div class="who">'+esc(b.name)+'</div><div class="meta">'+[b.phone&&('Tel. '+esc(b.phone)),b.notes&&esc(b.notes)].filter(Boolean).join(' – ')+'</div><span class="status '+statusClass(b.status)+'">'+statusLabel(b.status)+'</span></div><button class="ghost" data-slot="'+t+'">Ver</button>'
+           :'<div class="meta">'+(past?'Bloqueado · horario pasado':'Libre')+'</div><button data-slot="'+t+'" '+(past?'disabled':'')+'>'+(past?'Bloqueado':'Agendar')+'</button>')
+       +'</div>';
+    });
+    $('slots').innerHTML=s;
+    var hist=allBookings.filter(function(b){return b.day===sel && (b.status==='done'||b.status==='cancelled');}).sort(function(a,b){return a.slot.localeCompare(b.slot);});
+    $('history').innerHTML=hist.length?'<h2>Historial de este día</h2>'+hist.map(function(b){return '<div class="history-item"><strong>'+b.slot+' · '+esc(b.name)+'</strong><br><span class="status '+statusClass(b.status)+'">'+statusLabel(b.status)+'</span></div>';}).join(''):'';
+  }
+  function pick(day){if(isPastDay(day)&&countDay(day)===0)return;var d=parse(day);sel=day;vy=d.getFullYear();vm=d.getMonth();render()}
+  function open(t){
+    cur=sel+'|'+t; var b=data[cur]||{}, booked=!!data[cur];
+    if(isPastSlot(sel,t)&&!booked)return;
+    $('dt').textContent=longDay(sel)+', '+t+' a '+endOf(t);
+    $('name').value=b.name||'';$('phone').value=b.phone||'';$('notes').value=b.notes||'';
+    $('status').value=b.status||'pending';$('statusWrap').hidden=!booked;
+    $('name').disabled=false;
+    $('phone').disabled=false;$('notes').disabled=false;
+    var phone=(b.phone||'').replace(/\D/g,'');
+    $('reminder').innerHTML=booked&&phone?'<a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+phone+'?text='+encodeURIComponent('Hola '+(b.name||'')+', te recordamos tu entrevista para el '+longDay(sel)+' a las '+t+'. ¡Te esperamos!')+'">Enviar recordatorio por WhatsApp</a>':'<p class="hint">'+(booked?'Agregá un teléfono para habilitar el recordatorio por WhatsApp.':'El recordatorio estará disponible cuando registres una entrevista con teléfono.')+'</p>';
+    $('f').querySelector('button[type="submit"]').textContent=booked?'Guardar cambios':'Agendar entrevista';
+    $('dlg').showModal();
+    if(!b.name) $('name').focus();
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    if(b.dataset.day) pick(b.dataset.day);
+    else if(b.dataset.slot && !b.disabled) open(b.dataset.slot);
+  });
+  $('prev').onclick=function(){vm--;if(vm<0){vm=11;vy--}render()};
+  $('nx').onclick=function(){vm++;if(vm>11){vm=0;vy++}render()};
+  $('today').onclick=function(){pick(ymd(new Date()))};
+  $('close').onclick=function(){$('dlg').close()};
+  $('f').addEventListener('submit',function(e){
+    e.preventDefault();
+    if(isPastSlot(sel,cur.split('|')[1])&&!data[cur]){note('Ese horario ya pasó. Elegí otro horario disponible.');$('dlg').close();render();return;}
+    var booked=!!data[cur], status=booked?$('status').value:'pending';
+    if(booked){
+      var b=data[cur];
+      if(status==='cancelled') updateStatus(cur,'cancelled');
+      else put(cur,{name:$('name').value.trim(),phone:$('phone').value.trim(),notes:$('notes').value.trim(),status:status});
+    } else put(cur,{name:$('name').value.trim(),phone:$('phone').value.trim(),notes:$('notes').value.trim(),status:'pending'});
+    $('dlg').close();render();
+  });
+  render(); setInterval(render,60000); initFb();
+})();
+</script>
+</body>
+</html>
