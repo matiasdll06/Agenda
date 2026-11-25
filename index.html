@@ -52,8 +52,16 @@ button:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
 </style>
 </head>
 <body>
-<main id="app">
+<main id="login" hidden style="text-align:center;padding-top:15vh">
 <h1>Agenda de entrevistas</h1>
+<p class="meta" style="font-size:1rem">Entrá con tu cuenta de Google para ver y agendar las entrevistas.</p>
+<button id="gbtn">Entrar con Google</button>
+<p class="meta" id="lerr" style="color:var(--danger)"></p>
+</main>
+
+<main id="app" hidden>
+<h1>Agenda de entrevistas</h1>
+<div class="meta" style="margin:-8px 0 6px"><span id="me"></span> <button class="ghost" id="out" style="padding:4px 10px;font-size:.85rem">Cerrar sesión</button></div>
 <div class="meta" id="st" style="margin:0 0 12px;color:var(--danger)"></div>
 <div id="next"></div>
 
@@ -87,6 +95,7 @@ button:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
 </dialog>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 (function(){
@@ -99,7 +108,7 @@ button:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
   var fs=null, unsub=null;
   function note(t){var e=document.getElementById('st'); if(e) e.textContent=t;}
   function idOf(k){return k.replace('|','_')}
-  function fail(e){ note(e&&e.code==='permission-denied'?'No hay permiso para usar la agenda. Revisá las reglas de Firebase.':'No se pudo guardar. Probá de nuevo.'); }
+  function fail(e){ note(e&&e.code==='permission-denied'?'Este correo no tiene permiso para usar la agenda.':'No se pudo guardar. Probá de nuevo.'); }
   function put(k,b){
     data[k]=b; var p=k.split('|');
     fs.collection('bookings').doc(idOf(k)).set({day:p[0],slot:p[1],name:b.name,phone:b.phone,notes:b.notes}).catch(fail);
@@ -108,14 +117,30 @@ button:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
     delete data[k];
     fs.collection('bookings').doc(idOf(k)).delete().catch(fail);
   }
+  function showLogin(on){ document.getElementById('login').hidden=!on; document.getElementById('app').hidden=on; }
   function initFb(){
-    if(typeof firebase==='undefined'){ note('No se pudo cargar. Revisá la conexión y recargá la página.'); return; }
-    firebase.initializeApp(FIREBASE_CONFIG); fs=firebase.firestore();
-    unsub=fs.collection('bookings').onSnapshot(function(snap){
-      var nd={};
-      snap.docs.forEach(function(x){var b=x.data(); if(b&&b.day&&b.slot) nd[b.day+'|'+b.slot]={name:b.name||'',phone:b.phone||'',notes:b.notes||''};});
-      data=nd; note(''); render();
-    },fail);
+    if(typeof firebase==='undefined'){ showLogin(true); document.getElementById('lerr').textContent='No se pudo cargar. Revisá la conexión y recargá la página.'; return; }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    var auth=firebase.auth(); fs=firebase.firestore();
+    document.getElementById('gbtn').onclick=function(){
+      var pr=new firebase.auth.GoogleAuthProvider();
+      document.getElementById('lerr').textContent='';
+      auth.signInWithPopup(pr).catch(function(e){
+        if(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'){ auth.signInWithRedirect(pr); }
+        else if(e.code!=='auth/popup-closed-by-user'&&e.code!=='auth/cancelled-popup-request'){ document.getElementById('lerr').textContent='No se pudo iniciar sesión ('+(e.code||'error')+'). Probá de nuevo.'; }
+      });
+    };
+    document.getElementById('out').onclick=function(){ auth.signOut(); };
+    auth.onAuthStateChanged(function(u){
+      if(unsub){ unsub(); unsub=null; }
+      if(!u){ data={}; showLogin(true); return; }
+      document.getElementById('me').textContent=u.email; showLogin(false); note('');
+      unsub=fs.collection('bookings').onSnapshot(function(snap){
+        var nd={};
+        snap.docs.forEach(function(x){var b=x.data(); if(b&&b.day&&b.slot) nd[b.day+'|'+b.slot]={name:b.name||'',phone:b.phone||'',notes:b.notes||''};});
+        data=nd; render();
+      },fail);
+    });
   }
   var $=function(i){return document.getElementById(i)};
   function pad(n){return String(n).padStart(2,'0')}
