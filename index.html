@@ -45,19 +45,15 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 label{display:grid;gap:4px;font-weight:700;font-size:.95rem;margin-top:12px}
 input,textarea{font:inherit;padding:10px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+button:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
+.d.past{opacity:.4}
+.slot.blocked{background:transparent;opacity:.6}
+.slot.past{opacity:.75}
 </style>
 </head>
 <body>
-<main id="login" hidden style="text-align:center;padding-top:15vh">
+<main id="app">
 <h1>Agenda de entrevistas</h1>
-<p class="meta" style="font-size:1rem">Entrá con tu cuenta de Google para ver y agendar las entrevistas.</p>
-<button id="gbtn">Entrar con Google</button>
-<p class="meta" id="lerr" style="color:var(--danger)"></p>
-</main>
-
-<main id="app" hidden>
-<h1>Agenda de entrevistas</h1>
-<div class="meta" style="margin:-8px 0 6px"><span id="me"></span> <button class="ghost" id="out" style="padding:4px 10px;font-size:.85rem">Cerrar sesión</button></div>
 <div class="meta" id="st" style="margin:0 0 12px;color:var(--danger)"></div>
 <div id="next"></div>
 
@@ -83,7 +79,7 @@ input,textarea{font:inherit;padding:10px;border:2px solid var(--line);border-rad
     <label>Teléfono (opcional)<input id="phone" type="tel" autocomplete="off"></label>
     <label>Notas (opcional)<textarea id="notes" rows="2"></textarea></label>
     <div class="row">
-      <button type="submit">Guardar</button>
+      <button type="submit" id="save">Guardar</button>
       <button type="button" class="ghost" id="close">Cerrar</button>
       <button type="button" class="danger" id="cancel" hidden>Cancelar entrevista</button>
     </div>
@@ -91,12 +87,11 @@ input,textarea{font:inherit;padding:10px;border:2px solid var(--line);border-rad
 </dialog>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 (function(){
   var KEY='agenda-entrevistas-v2';
-  var SLOTS=['10:00','10:40','11:20','12:00','14:30','15:10','15:50','16:30'];
+  var SLOTS=['09:20','10:00','10:40','11:20','12:00','13:50','14:30','15:10','15:50','16:30'];
   var data={};
   try{ data=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ data={}; }
   function save(){ try{ localStorage.setItem(KEY,JSON.stringify(data)); }catch(e){} }
@@ -104,7 +99,7 @@ input,textarea{font:inherit;padding:10px;border:2px solid var(--line);border-rad
   var fs=null, unsub=null;
   function note(t){var e=document.getElementById('st'); if(e) e.textContent=t;}
   function idOf(k){return k.replace('|','_')}
-  function fail(e){ note(e&&e.code==='permission-denied'?'Este correo no tiene permiso para usar la agenda.':'No se pudo guardar. Probá de nuevo.'); }
+  function fail(e){ note(e&&e.code==='permission-denied'?'No hay permiso para usar la agenda. Revisá las reglas de Firebase.':'No se pudo guardar. Probá de nuevo.'); }
   function put(k,b){
     data[k]=b; var p=k.split('|');
     fs.collection('bookings').doc(idOf(k)).set({day:p[0],slot:p[1],name:b.name,phone:b.phone,notes:b.notes}).catch(fail);
@@ -113,30 +108,14 @@ input,textarea{font:inherit;padding:10px;border:2px solid var(--line);border-rad
     delete data[k];
     fs.collection('bookings').doc(idOf(k)).delete().catch(fail);
   }
-  function showLogin(on){ document.getElementById('login').hidden=!on; document.getElementById('app').hidden=on; }
   function initFb(){
-    if(typeof firebase==='undefined'){ showLogin(true); document.getElementById('lerr').textContent='No se pudo cargar. Revisá la conexión y recargá la página.'; return; }
-    firebase.initializeApp(FIREBASE_CONFIG);
-    var auth=firebase.auth(); fs=firebase.firestore();
-    document.getElementById('gbtn').onclick=function(){
-      var pr=new firebase.auth.GoogleAuthProvider();
-      document.getElementById('lerr').textContent='';
-      auth.signInWithPopup(pr).catch(function(e){
-        if(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'){ auth.signInWithRedirect(pr); }
-        else if(e.code!=='auth/popup-closed-by-user'&&e.code!=='auth/cancelled-popup-request'){ document.getElementById('lerr').textContent='No se pudo iniciar sesión ('+(e.code||'error')+'). Probá de nuevo.'; }
-      });
-    };
-    document.getElementById('out').onclick=function(){ auth.signOut(); };
-    auth.onAuthStateChanged(function(u){
-      if(unsub){ unsub(); unsub=null; }
-      if(!u){ data={}; showLogin(true); return; }
-      document.getElementById('me').textContent=u.email; showLogin(false); note('');
-      unsub=fs.collection('bookings').onSnapshot(function(snap){
-        var nd={};
-        snap.docs.forEach(function(x){var b=x.data(); if(b&&b.day&&b.slot) nd[b.day+'|'+b.slot]={name:b.name||'',phone:b.phone||'',notes:b.notes||''};});
-        data=nd; render();
-      },fail);
-    });
+    if(typeof firebase==='undefined'){ note('No se pudo cargar. Revisá la conexión y recargá la página.'); return; }
+    firebase.initializeApp(FIREBASE_CONFIG); fs=firebase.firestore();
+    unsub=fs.collection('bookings').onSnapshot(function(snap){
+      var nd={};
+      snap.docs.forEach(function(x){var b=x.data(); if(b&&b.day&&b.slot) nd[b.day+'|'+b.slot]={name:b.name||'',phone:b.phone||'',notes:b.notes||''};});
+      data=nd; note(''); render();
+    },fail);
   }
   var $=function(i){return document.getElementById(i)};
   function pad(n){return String(n).padStart(2,'0')}
@@ -146,6 +125,7 @@ input,textarea{font:inherit;padding:10px;border:2px solid var(--line);border-rad
   function longDay(day){return parse(day).toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})}
   function esc(s){return String(s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
   function countDay(day){return SLOTS.filter(function(s){return data[day+'|'+s]}).length}
+  function isPast(day,t){var p=t.split(':'),d=parse(day);d.setHours(+p[0],+p[1],0,0);return d<new Date()}
   var now=new Date(), sel=ymd(now), vy=now.getFullYear(), vm=now.getMonth(), cur=null;
 
   function nextOne(){
@@ -170,19 +150,19 @@ input,textarea{font:inherit;padding:10px;border:2px solid var(--line);border-rad
     for(i=0;i<off;i++) h+='<button class="d" disabled></button>';
     for(i=1;i<=dim;i++){
       var day=vy+'-'+pad(vm+1)+'-'+pad(i), c=countDay(day);
-      h+='<button class="d'+(c?' has':'')+(day===ymd(new Date())?' today':'')+(day===sel?' sel':'')+'" data-day="'+day+'" aria-label="'+esc(longDay(day))+(c?', '+c+' de 8 agendadas':'')+'">'+i+(c?'<small>'+c+'/8</small>':'')+'</button>';
+      h+='<button class="d'+(c?' has':'')+(day<ymd(new Date())?' past':'')+(day===ymd(new Date())?' today':'')+(day===sel?' sel':'')+'" data-day="'+day+'" aria-label="'+esc(longDay(day))+(c?', '+c+' de '+SLOTS.length+' agendadas':'')+'">'+i+(c?'<small>'+c+'/'+SLOTS.length+'</small>':'')+'</button>';
     }
     $('cal').innerHTML=h;
 
-    $('dh').textContent=longDay(sel);
+    $('dh').textContent=longDay(sel)+(sel<ymd(new Date())?' (ya pasó)':'');
     var s='';
     SLOTS.forEach(function(t,idx){
       if(idx===0) s+='<h2>Mañana</h2>';
-      if(idx===4) s+='<h2>Tarde</h2>';
-      var k=sel+'|'+t, b=data[k];
-      s+='<div class="slot'+(b?'':' free')+(n&&n.k===k?' nxt':'')+'"><div class="t">'+t+' a '+endOf(t)+'</div>'
+      if(idx===5) s+='<h2>Tarde</h2>';
+      var k=sel+'|'+t, b=data[k], past=isPast(sel,t);
+      s+='<div class="slot'+(b?(past?' past':''):(past?' blocked':' free'))+(n&&n.k===k?' nxt':'')+'"><div class="t">'+t+' a '+endOf(t)+'</div>'
        +(b?'<div><div class="who">'+esc(b.name)+'</div><div class="meta">'+[b.phone&&('Tel. '+esc(b.phone)),b.notes&&esc(b.notes)].filter(Boolean).join(' – ')+'</div></div><button class="ghost" data-slot="'+t+'">Ver</button>'
-           :'<div class="meta">Libre</div><button data-slot="'+t+'">Agendar</button>')
+           :(past?'<div class="meta">Horario pasado</div><button disabled>Bloqueado</button>':'<div class="meta">Libre</div><button data-slot="'+t+'">Agendar</button>'))
        +'</div>';
     });
     $('slots').innerHTML=s;
@@ -194,8 +174,9 @@ input,textarea{font:inherit;padding:10px;border:2px solid var(--line);border-rad
     $('name').value=b.name||'';$('phone').value=b.phone||'';$('notes').value=b.notes||'';
     $('cancel').hidden=!data[cur];
     $('cancel').dataset.armed='0';$('cancel').textContent='Cancelar entrevista';
+    var past=isPast(sel,t);['name','phone','notes'].forEach(function(i){$(i).disabled=past});$('save').hidden=past;if(past)$('cancel').hidden=true;
     $('dlg').showModal();
-    if(!b.name) $('name').focus();
+    if(!b.name&&!past) $('name').focus();
   }
   document.addEventListener('click',function(e){
     var b=e.target.closest('button'); if(!b) return;
@@ -213,6 +194,7 @@ input,textarea{font:inherit;padding:10px;border:2px solid var(--line);border-rad
   };
   $('f').addEventListener('submit',function(e){
     e.preventDefault();
+    var q=cur.split('|'); if(isPast(q[0],q[1])){$('dlg').close();return}
     put(cur,{name:$('name').value.trim(),phone:$('phone').value.trim(),notes:$('notes').value.trim()});
     $('dlg').close();render();
   });
